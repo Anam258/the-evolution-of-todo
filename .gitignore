@@ -44,6 +44,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!frontend/src/lib/
 lib64/
 parts/
 sdist/
@@ -264,3 +265,4 @@ secrets/
 # Docker
 *.dockerignore
 .dockerenv
+nul

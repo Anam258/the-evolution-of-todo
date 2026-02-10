@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .middleware.security import SecurityHeadersMiddleware
-from .middleware.auth_middleware import auth_middleware
+from .middleware.auth_middleware import JWTAuthMiddleware
 from .api.auth import router as auth_router
 from .api.tasks import router as tasks_router
 from .config.auth_config import validate_startup_configuration
@@ -42,8 +42,8 @@ def create_app() -> FastAPI:
     # Add security headers middleware first
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # Add auth middleware
-    app.add_middleware(auth_middleware)
+    # Add auth middleware (class-based — fixes call_next error)
+    app.add_middleware(JWTAuthMiddleware)
 
     # Add CORS middleware
     app.add_middleware(

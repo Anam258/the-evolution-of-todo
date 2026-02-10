@@ -1,220 +1,87 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from typing import Optional, Dict, Any
-from functools import wraps
 from src.lib.jwt_utils import verify_token, get_user_id_from_token
-import os
 
-# Initialize security scheme
 security = HTTPBearer()
 
-def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+PUBLIC_PATHS = frozenset({
+    "/", "/health", "/monitoring/health", "/monitoring/metrics",
+    "/auth/register", "/auth/login", "/auth/logout", "/auth/health",
+    "/docs", "/redoc", "/openapi.json",
+})
+
+
+class JWTAuthMiddleware(BaseHTTPMiddleware):
     """
-    Verify JWT token from Authorization header and return its payload.
-
-    Args:
-        credentials: HTTP Authorization credentials from header
-
-    Returns:
-        Token payload if valid
-
-    Raises:
-        HTTPException: If token is invalid or missing
+    Class-based ASGI middleware that extracts JWT claims into request.state
+    on every request.  Public paths get user_id=None; protected paths with
+    a bad/missing token are rejected here so route handlers never have to
+    worry about it.
     """
-    token = credentials.credentials
 
-    # Check if token is empty or None
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    async def dispatch(self, request: Request, call_next) -> Response:
+        # Always allow OPTIONS (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
 
-    payload = verify_token(token)
+        path = request.url.path.rstrip("/")
+        is_public = path in PUBLIC_PATHS or path.startswith("/auth/")
 
-    if payload is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        auth_header = request.headers.get("authorization", "")
+        request.state.user_id = None
+        request.state.token_payload = None
 
-    return payload
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            if self._is_valid_format(token):
+                payload = verify_token(token)
+                if payload:
+                    user_id = payload.get("user_id") or payload.get("sub")
+                    if isinstance(user_id, str):
+                        try:
+                            user_id = int(user_id)
+                        except ValueError:
+                            user_id = None
+                    request.state.user_id = user_id
+                    request.state.token_payload = payload
 
+        # If a protected path has no valid user, reject early
+        if not is_public and request.state.user_id is None:
+            from starlette.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Missing or invalid authentication token"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-def verify_jwt_token_or_none(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[Dict[str, Any]]:
-    """
-    Verify JWT token from Authorization header and return its payload if valid, None otherwise.
+        return await call_next(request)
 
-    Args:
-        credentials: HTTP Authorization credentials from header
-
-    Returns:
-        Token payload if valid, None otherwise
-    """
-    try:
-        token = credentials.credentials
-
-        if not token:
-            return None
-
-        payload = verify_token(token)
-
-        if payload is None:
-            return None
-
-        return payload
-    except HTTPException:
-        # If there's an HTTP exception (like missing header), return None
-        return None
+    @staticmethod
+    def _is_valid_format(token: str) -> bool:
+        return token.count(".") == 2
 
 
-def verify_jwt_in_request(request) -> Optional[Dict[str, Any]]:
-    """
-    Verify JWT token from Authorization header in request object.
+# ---------------------------------------------------------------------------
+# Dependency-injection helpers (used by route handlers via Depends)
+# ---------------------------------------------------------------------------
 
-    Args:
-        request: FastAPI request object
-
-    Returns:
-        Token payload if valid, None otherwise
-    """
-    auth_header = request.headers.get("authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return None
-
-    token = auth_header[len("Bearer "):]
-    payload = verify_token(token)
-
-    return payload
-
-
-def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> int:
-    """
-    Extract user_id from JWT token in Authorization header.
-
-    Args:
-        credentials: HTTP Authorization credentials from header
-
-    Returns:
-        User ID if token is valid
-
-    Raises:
-        HTTPException: If token is invalid, missing, or user_id not found
-    """
-    token = credentials.credentials
-    user_id = get_user_id_from_token(token)
-
-    if user_id is None:
+def get_current_user_id(request: Request) -> int:
+    """Extract user_id that the middleware already validated."""
+    uid = getattr(request.state, "user_id", None)
+    if uid is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    return user_id
-
-
-def require_auth():
-    """
-    Decorator to require authentication for a route.
-    Returns the authenticated user's ID.
-    """
-    def auth_dependency(current_user_id: int = Depends(get_current_user_id)):
-        return current_user_id
-    return auth_dependency
-
-
-def verify_secret_key():
-    """
-    Verify that the JWT secret key is properly configured.
-
-    Raises:
-        ValueError: If JWT secret is missing or too short
-    """
-    secret = os.getenv("BETTER_AUTH_SECRET")
-
-    if not secret:
-        raise ValueError("BETTER_AUTH_SECRET environment variable not set")
-
-    if len(secret) < 32:
-        raise ValueError("BETTER_AUTH_SECRET must be at least 32 characters long")
-
-
-def verify_token_format(token: str) -> bool:
-    """
-    Verify the basic format of a JWT token (has 3 parts separated by dots).
-
-    Args:
-        token: JWT token string
-
-    Returns:
-        True if format is valid, False otherwise
-    """
-    parts = token.split(".")
-    return len(parts) == 3
-
-
-async def auth_middleware(request, call_next):
-    """
-    ASGI middleware to add authentication context to requests.
-    This middleware can be added to FastAPI applications to provide
-    authentication information to all routes.
-    """
-    # Check for authorization header
-    auth_header = request.headers.get("authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header[len("Bearer "):]
-
-        # Verify token format
-        if verify_token_format(token):
-            # Attempt to get user ID from token
-            user_id = get_user_id_from_token(token)
-            # Add to request state for use in route handlers
-            request.state.user_id = user_id
-        else:
-            request.state.user_id = None
-    else:
-        request.state.user_id = None
-
-    response = await call_next(request)
-    return response
-
-
-def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[int]:
-    """
-    Get current user ID if authenticated, or None if not.
-    Used for routes that work for both authenticated and unauthenticated users.
-    """
-    try:
-        token = credentials.credentials
-        user_id = get_user_id_from_token(token)
-        return user_id
-    except HTTPException:
-        return None
+    return uid
 
 
 def require_authenticated_user():
-    """
-    Decorator to require authentication for a route.
-    Returns the authenticated user's ID.
-
-    Example usage:
-    @app.get("/protected")
-    def protected_route(current_user_id: int = Depends(require_authenticated_user())):
-        return {"user_id": current_user_id}
-    """
-    def auth_dependency(current_user_id: int = Depends(get_current_user_id)):
-        return current_user_id
-    return auth_dependency
-
-
-def require_valid_token():
-    """
-    Decorator to require a valid token for a route.
-    Returns the token payload.
-    """
-    def token_dependency(token_data: Dict[str, Any] = Depends(verify_jwt_token)):
-        return token_data
-    return token_dependency
+    """FastAPI Depends() wrapper returning the authenticated user_id."""
+    def _dep(request: Request) -> int:
+        return get_current_user_id(request)
+    return _dep

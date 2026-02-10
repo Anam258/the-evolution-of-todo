@@ -11,7 +11,7 @@ from ..api.models import (
     ApiResponse,
     ApiError
 )
-from ..middleware.auth_middleware import require_authenticated_user
+from ..middleware.auth_middleware import get_current_user_id
 from ..models.user import User
 from ..utils.rate_limiter import auth_rate_limiter, get_client_ip, get_rate_limit_key
 
@@ -162,19 +162,20 @@ def logout():
 
 @router.get("/me", response_model=ApiResponse)
 def get_current_user(
-    current_user_id: int = Depends(require_authenticated_user()),
-    db_session: Session = Depends(get_session)
+    request: Request,
+    db_session: Session = Depends(get_session),
 ):
     """
     Get current authenticated user's information.
 
     Args:
-        current_user_id: ID of the authenticated user
+        request: FastAPI request object
         db_session: Database session
 
     Returns:
         ApiResponse with user information
     """
+    current_user_id = get_current_user_id(request)
     user = auth_service.get_user_by_id(db_session, current_user_id)
 
     if not user:
@@ -195,8 +196,8 @@ def get_current_user(
 @router.get("/{user_id}", response_model=ApiResponse)
 def get_user_by_id(
     user_id: int,
-    current_user_id: int = Depends(require_authenticated_user()),
-    db_session: Session = Depends(get_session)
+    request: Request,
+    db_session: Session = Depends(get_session),
 ):
     """
     Get a specific user's public information.
@@ -212,8 +213,7 @@ def get_user_by_id(
     Returns:
         ApiResponse with user information
     """
-    # For this example, users can only access their own information
-    # If they try to access another user's data, return 404 (not 403)
+    current_user_id = get_current_user_id(request)
     if current_user_id != user_id:
         # Return 404 instead of 403 to prevent enumeration attacks
         raise HTTPException(
