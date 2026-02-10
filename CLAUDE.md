@@ -208,3 +208,16 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.11+ + SQLModel (0.0.14+), SQLAlchemy (2.0+), psycopg2-binary, python-dotenv (001-db-schema)
+- Neon Serverless PostgreSQL (cloud-hosted, serverless) (001-db-schema)
+- Python 3.11 (Backend), TypeScript/JavaScript (Frontend) + FastAPI, Better Auth, SQLModel, Neon PostgreSQL, JWT libraries (003-better-auth-jwt)
+- Neon Serverless PostgreSQL database (003-better-auth-jwt)
+- Python 3.11+ (Backend), TypeScript/JavaScript (Frontend) + FastAPI, SQLModel, python-jose, passlib, Next.js 16+, React (003-better-auth-jwt)
+- Python 3.11 + FastAPI, SQLModel, python-dotenv, python-jose, passlib (001-backend-connectivity-fix)
+- TypeScript 5.3, JavaScript ES2020, Next.js 14 + React 18.2.0, Next.js 14.0.0, Tailwind CSS, PostCSS, Autoprefixer (001-frontend-api-fix)
+- Browser localStorage for JWT tokens (001-frontend-api-fix)
+
+## Recent Changes
+- 001-db-schema: Added Python 3.11+ + SQLModel (0.0.14+), SQLAlchemy (2.0+), psycopg2-binary, python-dotenv
