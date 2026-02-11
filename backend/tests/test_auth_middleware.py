@@ -8,7 +8,7 @@ import os
 # Import your FastAPI app
 from src.main import app  # Assuming your FastAPI app is in src/main.py
 from src.lib.jwt_utils import create_access_token, verify_token, get_user_id_from_token
-from src.middleware.auth_middleware import verify_jwt_token, get_current_user_id
+from src.middleware.auth_middleware import get_current_user_id
 from src.services.auth_service import auth_service
 
 
@@ -40,9 +40,10 @@ def create_test_token(user_id: int = 1, email: str = "test@example.com", expires
         "exp": datetime.utcnow() + expires_delta
     }
 
-    # Use a test secret
-    test_secret = "test-secret-key-for-testing-purposes-only"
-    return jwt.encode(data, test_secret, algorithm="HS256")
+    # Use the same secret as the application
+    from src.config.auth_config import auth_config
+    secret = auth_config.get_secret_key()
+    return jwt.encode(data, secret, algorithm="HS256")
 
 
 class TestJWTUtilities:

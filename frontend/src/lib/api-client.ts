@@ -1,5 +1,5 @@
 /**
- * API Client — enforces the /api/{user_id}/tasks contract.
+ * API Client — enforces the /api/v1/{user_id}/tasks contract.
  * Every task request includes user_id in the URL AND the JWT in the header.
  */
 
@@ -43,7 +43,7 @@ async function request<T = unknown>(
   return res.json();
 }
 
-// ── Task-specific helpers using /api/{user_id}/tasks contract ───────────
+// ── Task-specific helpers using /api/v1/{user_id}/tasks contract ────────
 
 export interface Task {
   id: number;
@@ -73,12 +73,12 @@ function requireUserId(): number {
 export const taskApi = {
   list(): Promise<Task[]> {
     const uid = requireUserId();
-    return request('GET', `/api/${uid}/tasks`);
+    return request('GET', `/api/v1/${uid}/tasks`);
   },
 
   create(data: TaskCreatePayload): Promise<Task> {
     const uid = requireUserId();
-    return request('POST', `/api/${uid}/tasks`, {
+    return request('POST', `/api/v1/${uid}/tasks`, {
       title: data.title,
       description: data.description ?? null,
       is_completed: data.is_completed ?? false,
@@ -87,17 +87,17 @@ export const taskApi = {
 
   update(taskId: number, data: Partial<TaskCreatePayload>): Promise<Task> {
     const uid = requireUserId();
-    return request('PUT', `/api/${uid}/tasks/${taskId}`, data);
+    return request('PUT', `/api/v1/${uid}/tasks/${taskId}`, data);
   },
 
   toggleComplete(taskId: number, is_completed: boolean): Promise<Task> {
     const uid = requireUserId();
-    return request('PATCH', `/api/${uid}/tasks/${taskId}`, { is_completed });
+    return request('PATCH', `/api/v1/${uid}/tasks/${taskId}`, { is_completed });
   },
 
   delete(taskId: number): Promise<{ message: string }> {
     const uid = requireUserId();
-    return request('DELETE', `/api/${uid}/tasks/${taskId}`);
+    return request('DELETE', `/api/v1/${uid}/tasks/${taskId}`);
   },
 };
 
@@ -105,16 +105,16 @@ export const taskApi = {
 export const authApi = {
   register(email: string, password: string) {
     return request<{ data: { user_id: number; email: string; token: string } }>(
-      'POST', '/auth/register', { email, password },
+      'POST', '/api/v1/auth/register', { email, password },
     );
   },
   login(email: string, password: string) {
     return request<{ data: { user_id: number; email: string; token: string } }>(
-      'POST', '/auth/login', { email, password },
+      'POST', '/api/v1/auth/login', { email, password },
     );
   },
   me() {
-    return request<{ data: { user_id: number; email: string } }>('GET', '/auth/me');
+    return request<{ data: { user_id: number; email: string } }>('GET', '/api/v1/auth/me');
   },
 };
 

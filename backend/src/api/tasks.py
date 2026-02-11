@@ -1,10 +1,13 @@
 """
-Task API endpoints — contract: /api/{user_id}/tasks
+Task API endpoints — contract: /api/v1/{user_id}/tasks
 
 Every endpoint validates that the {user_id} in the URL matches the
 user_id extracted from the JWT by the JWTAuthMiddleware.  This gives
 us defence-in-depth: the middleware rejects unauthenticated requests,
 and the route rejects cross-user access.
+
+Note: These routes are mounted with prefix="/api/v1" in main.py,
+so /{user_id}/tasks becomes /api/v1/{user_id}/tasks.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -30,7 +33,7 @@ def _enforce_ownership(url_user_id: int, jwt_user_id: int) -> None:
 
 # ── LIST ──────────────────────────────────────────────────────────────────
 
-@router.get("/api/{user_id}/tasks", response_model=List[TaskRead])
+@router.get("/{user_id}/tasks", response_model=List[TaskRead])
 def list_tasks(
     user_id: int,
     request: Request,
@@ -43,7 +46,7 @@ def list_tasks(
 
 # ── CREATE ────────────────────────────────────────────────────────────────
 
-@router.post("/api/{user_id}/tasks", response_model=TaskRead, status_code=201)
+@router.post("/{user_id}/tasks", response_model=TaskRead, status_code=201)
 def create_task(
     user_id: int,
     body: TaskCreate,
@@ -67,7 +70,7 @@ def create_task(
 
 # ── READ ONE ──────────────────────────────────────────────────────────────
 
-@router.get("/api/{user_id}/tasks/{task_id}", response_model=TaskRead)
+@router.get("/{user_id}/tasks/{task_id}", response_model=TaskRead)
 def get_task(
     user_id: int,
     task_id: int,
@@ -85,7 +88,7 @@ def get_task(
 
 # ── UPDATE (full) ─────────────────────────────────────────────────────────
 
-@router.put("/api/{user_id}/tasks/{task_id}", response_model=TaskRead)
+@router.put("/{user_id}/tasks/{task_id}", response_model=TaskRead)
 def update_task(
     user_id: int,
     task_id: int,
@@ -105,7 +108,7 @@ def update_task(
 
 # ── PATCH (status toggle) ────────────────────────────────────────────────
 
-@router.patch("/api/{user_id}/tasks/{task_id}", response_model=TaskRead)
+@router.patch("/{user_id}/tasks/{task_id}", response_model=TaskRead)
 def patch_task(
     user_id: int,
     task_id: int,
@@ -126,7 +129,7 @@ def patch_task(
 
 # ── DELETE ────────────────────────────────────────────────────────────────
 
-@router.delete("/api/{user_id}/tasks/{task_id}")
+@router.delete("/{user_id}/tasks/{task_id}")
 def delete_task(
     user_id: int,
     task_id: int,

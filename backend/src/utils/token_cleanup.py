@@ -19,7 +19,7 @@ class TokenCleanupService:
     """
 
     def __init__(self):
-        self.secret_key = os.getenv("BETTER_AUTH_SECRET", "your-32-character-secret-key-here")
+        self.secret_key = os.getenv("BETTER_AUTH_SECRET", "")
         self.algorithm = os.getenv("JWT_ALGORITHM", "HS256")
 
     def is_token_expired(self, token: str) -> bool:

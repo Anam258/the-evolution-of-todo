@@ -42,30 +42,11 @@ class AuthConfig:
             logger.warning("BETTER_AUTH_SECRET environment variable not found")
 
         if not secret:
-            # Check if we have a .env file that might not have been loaded
-            import pathlib
-            env_file_path = pathlib.Path(__file__).parent.parent.parent.parent / "backend" / ".env"
-
-            # Provide fallback mechanism with strong warning
-            if not env_file_path.exists():
-                logger.warning("⚠️  BETTER_AUTH_SECRET not set and .env file not found. Using fallback mechanism!")
-                logger.warning("⚠️  FOR DEVELOPMENT ONLY: Generating a temporary secret (NOT suitable for production)")
-
-                # Generate a temporary secret for development purposes
-                import secrets
-                temp_secret = secrets.token_urlsafe(32)
-                logger.info(f"⚠️  Generated temporary secret: {temp_secret[:10]}... (truncated)")
-
-                # Store in os.environ for this session
-                os.environ["BETTER_AUTH_SECRET"] = temp_secret
-                secret = temp_secret
-
-                logger.warning("⚠️  IMPORTANT: This temporary secret will not persist between sessions!")
-                logger.warning("⚠️  Please set BETTER_AUTH_SECRET in your .env file for production use.")
-            else:
-                logger.error("BETTER_AUTH_SECRET environment variable not set")
-                raise ValueError("BETTER_AUTH_SECRET environment variable not set. "
-                               "Please check that your .env file contains the BETTER_AUTH_SECRET variable.")
+            logger.error("BETTER_AUTH_SECRET environment variable not set")
+            raise ValueError(
+                "BETTER_AUTH_SECRET environment variable not set. "
+                "Set it in your .env file (local dev) or platform environment variables (production)."
+            )
 
         if len(secret) < 32:
             logger.error(f"BETTER_AUTH_SECRET is too short: {len(secret)} characters, need at least 32")

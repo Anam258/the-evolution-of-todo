@@ -90,7 +90,26 @@
       "WebFetch(domain:taskai.asharib.xyz)",
       "Bash(powershell -Command \"Add-Content -Path 'D:\\\\GIAIC\\\\Quarter 4\\\\Hackathon\\\\Hackathon 2\\\\The-Evolution-of-Todo\\\\todo-phase-II\\\\frontend\\\\src\\\\app\\\\globals.css' -Value ''\":*)",
       "Bash(python -c:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: implement Phase II full-stack Todo app with auth and API fixes\n\nRestructure repository from Phase 1 CLI app to Phase II full-stack\nweb application. This delivers the complete multi-user Todo system\nwith FastAPI backend, Next.js frontend, JWT authentication, and\nNeon PostgreSQL integration.\n\nBackend \\(FastAPI\\):\n- REST API with auth endpoints \\(register, login, token refresh\\)\n- JWT middleware with user isolation per request\n- SQLModel models for users and tasks with Neon PostgreSQL\n- Health check and monitoring endpoints\n- Rate limiting, security middleware, and CORS configuration\n- Comprehensive test suite \\(unit + integration\\)\n\nFrontend \\(Next.js 14\\):\n- Sign-up and sign-in pages with form validation\n- Tailwind CSS styling with responsive design\n- NEXT_PUBLIC_API_URL environment variable fix \\(was ''undefined''\\)\n- Auth utility functions and token management via localStorage\n- Jest test configuration with component tests\n\nSpecifications & Planning:\n- 001-db-schema: Neon PostgreSQL schema design\n- 003-better-auth-jwt: Authentication system spec/plan/tasks\n- 001-backend-connectivity-fix: Backend startup and health checks\n- 001-frontend-api-fix: Frontend API URL and styling fixes\n- 004-fullstack-crud-ui: CRUD UI spec and plan \\(ready for tasks\\)\n\nInfrastructure:\n- Comprehensive .gitignore for Python, Node.js, and secrets\n- Bash scripts replacing PowerShell for cross-platform support\n- Claude Code agents and skills for specialized development\n- Architecture Decision Records for JWT and auth choices\n- Prompt History Records for all development sessions\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(where:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\ndocs: add PHR for Phase II commit and PR workflow\n\nRecord the git commit/PR workflow execution including the security\naudit that caught .env.backup with real credentials before staging.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add button input textarea checkbox card badge scroll-area dialog -y)",
+      "Bash(npm run build:*)",
+      "Bash(npm ls:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(git commit:*)",
+      "Bash(gh pr list:*)",
+      "Bash(git -C \"D:\\\\GIAIC\\\\Quarter 4\\\\Hackathon\\\\Hackathon 2\\\\The-Evolution-of-Todo\\\\todo-phase-II\" log --oneline -10)",
+      "Bash(git -C \"D:\\\\GIAIC\\\\Quarter 4\\\\Hackathon\\\\Hackathon 2\\\\The-Evolution-of-Todo\\\\todo-phase-II\" diff --stat)",
+      "Bash(echo:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(pip install:*)",
+      "Bash(SET:*)",
+      "Bash(set:*)"
     ]
   }
 }

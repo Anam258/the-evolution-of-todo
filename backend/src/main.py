@@ -60,9 +60,12 @@ def create_app() -> FastAPI:
     app.add_middleware(JWTAuthMiddleware)
 
     # 3. CORS (outermost — must run first so preflight never hits auth)
+    # ALLOWED_ORIGINS: comma-separated list, e.g. "http://localhost:3000,https://your-app.vercel.app"
+    raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+    allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
