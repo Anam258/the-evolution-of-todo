@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Nuralyx Flow Authentication API
+  title: TaskPulse AI Authentication API
   description: |
-    JWT-based authentication API for the Nuralyx Flow application.
+    JWT-based authentication API for the TaskPulse AI application.
     Provides user registration, login, and token verification endpoints.
 
     ## Authentication Flow
@@ -17,7 +17,7 @@ info:
     Attempting to access another user's resources returns 404 (not 403) to prevent enumeration attacks.
   version: 1.0.0
   contact:
-    name: Nuralyx Flow
+    name: TaskPulse AI
 
 servers:
   - url: http://localhost:8000

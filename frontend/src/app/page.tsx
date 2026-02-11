@@ -63,7 +63,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
               <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient_3s_linear_infinite]">
-                Nuralyx Flow
+                TaskPulse AI
               </span>
             </h1>
             {email && (
@@ -135,7 +135,7 @@ export default function DashboardPage() {
         {/* ── Footer ──────────────────────────────────────────────── */}
         <footer className="mt-12 text-center">
           <p className="text-[10px] text-muted-foreground/40 font-mono tracking-wider">
-            NURALYX FLOW &middot; PHASE II
+            TASKPULSE AI &middot; PHASE II
           </p>
         </footer>
       </div>

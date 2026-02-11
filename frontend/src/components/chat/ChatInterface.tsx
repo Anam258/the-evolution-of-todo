@@ -34,7 +34,7 @@ const HELP_TEXT = `Commands:
 
 export default function ChatInterface({ tasks, onMutate }: Props) {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '0', role: 'system', text: 'Welcome to Nuralyx Flow. Type `help` for commands.', timestamp: new Date() },
+    { id: '0', role: 'system', text: 'Welcome to TaskPulse AI. Type `help` for commands.', timestamp: new Date() },
   ]);
   const [input, setInput] = useState('');
   const [processing, setProcessing] = useState(false);

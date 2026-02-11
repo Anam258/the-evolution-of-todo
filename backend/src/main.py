@@ -6,6 +6,7 @@ from .middleware.auth_middleware import JWTAuthMiddleware
 from .api.auth import router as auth_router
 from .api.tasks import router as tasks_router
 from .config.auth_config import validate_startup_configuration
+from .database import init_db
 import os
 import sys
 import time
@@ -23,6 +24,14 @@ def create_app() -> FastAPI:
         print("Validating startup configuration...")
         validate_startup_configuration()
         print("[SUCCESS] Startup configuration validated successfully")
+
+        # Ensure all SQLModel tables exist (CREATE TABLE IF NOT EXISTS)
+        print("Syncing database schema...")
+        # Import models so SQLModel registers them before create_all
+        from .models.user import User   # noqa: F401
+        from .models.task import Task   # noqa: F401
+        init_db()
+        print("[SUCCESS] Database schema synced")
     except ValueError as e:
         print(f"[ERROR] Startup configuration error: {e}")
         print("[INFO] Please check your .env file and ensure all required environment variables are set correctly.")
@@ -34,31 +43,35 @@ def create_app() -> FastAPI:
 
     # Create FastAPI app
     app = FastAPI(
-        title="Nuralyx Flow API",
-        description="Nuralyx Flow — API with JWT-based authentication and user isolation",
+        title="TaskPulse AI API",
+        description="TaskPulse AI — API with JWT-based authentication and user isolation",
         version="1.0.0"
     )
 
-    # Add security headers middleware first
+    # ── Middleware stack ────────────────────────────────────────────
+    # FastAPI executes middleware in REVERSE registration order.
+    # Register innermost first, outermost last.
+    #   Execution order:  CORS  →  JWTAuth  →  SecurityHeaders  →  route
+    #
+    # 1. Security headers (innermost — runs closest to the route)
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # Add auth middleware (class-based — fixes call_next error)
+    # 2. JWT auth (middle — rejects unauthenticated on protected paths)
     app.add_middleware(JWTAuthMiddleware)
 
-    # Add CORS middleware
+    # 3. CORS (outermost — must run first so preflight never hits auth)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(","),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-        # expose headers to allow client to see custom headers
-        expose_headers=["Access-Control-Allow-Origin"]
+        expose_headers=["Access-Control-Allow-Origin"],
     )
 
-    # Include API routers
-    app.include_router(auth_router)
-    app.include_router(tasks_router)
+    # Include API routers under /api/v1
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(tasks_router, prefix="/api/v1")
 
     @app.get("/")
     def read_root():
@@ -68,7 +81,7 @@ def create_app() -> FastAPI:
         Returns:
             Welcome message
         """
-        return {"message": "Welcome to the Nuralyx Flow API"}
+        return {"message": "Welcome to the TaskPulse AI API"}
 
     @app.get("/health")
     def health_check():

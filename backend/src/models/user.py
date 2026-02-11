@@ -40,9 +40,11 @@ class UserCreate(UserBase):
 
     def hash_password(self) -> str:
         """Hash the plain text password"""
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        return pwd_context.hash(self.password)
+        import bcrypt
+        return bcrypt.hashpw(
+            self.password.encode("utf-8"),
+            bcrypt.gensalt(),
+        ).decode("utf-8")
 
 
 class UserUpdate(SQLModel):

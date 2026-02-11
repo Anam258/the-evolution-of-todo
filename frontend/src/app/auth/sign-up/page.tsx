@@ -51,7 +51,7 @@ export default function SignUpPage() {
         <div className="glass-card-elevated p-8 space-y-6">
           <div className="text-center">
             <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Nuralyx Flow
+              TaskPulse AI
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Create your account</p>
           </div>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Nuralyx Flow',
+  title: 'TaskPulse AI',
   description: 'Intelligent task management — Dual Interface (CUI + GUI)',
 };
 

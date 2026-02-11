@@ -1,5 +1,5 @@
 """
-Task model for the Nuralyx Flow application.
+Task model for the TaskPulse AI application.
 
 Implements the Task entity with user isolation using the UserIsolationService pattern.
 Each task is owned by a user and can only be accessed by that user.

@@ -7,29 +7,68 @@ from src.lib.jwt_utils import verify_token, get_user_id_from_token
 
 security = HTTPBearer()
 
+# Exact paths that never require a JWT (infrastructure / docs)
 PUBLIC_PATHS = frozenset({
     "/", "/health", "/monitoring/health", "/monitoring/metrics",
-    "/auth/register", "/auth/login", "/auth/logout", "/auth/health",
     "/docs", "/redoc", "/openapi.json",
 })
+
+# Auth routes that are open (no token needed).
+# /auth/me and /auth/{user_id} are intentionally EXCLUDED — they need JWT.
+PUBLIC_AUTH_PATHS = frozenset({
+    "/auth/register",
+    "/auth/login",
+    "/auth/logout",
+    "/auth/health",
+    "/auth/callback",
+})
+
+
+# Known API version prefixes to strip before matching
+_API_PREFIXES = ("/api/v1",)
+
+
+def _is_public(path: str) -> bool:
+    """Return True if this path should skip JWT verification entirely."""
+    if path in PUBLIC_PATHS:
+        return True
+    # Strip version prefix so /api/v1/auth/register matches /auth/register
+    normalized = path
+    for prefix in _API_PREFIXES:
+        if path.startswith(prefix):
+            normalized = path[len(prefix):]
+            break
+    return normalized in PUBLIC_AUTH_PATHS
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     """
     Class-based ASGI middleware that extracts JWT claims into request.state
-    on every request.  Public paths get user_id=None; protected paths with
-    a bad/missing token are rejected here so route handlers never have to
-    worry about it.
+    on every request.  Public paths are passed straight through without
+    even inspecting the Authorization header.  Protected paths with a
+    bad/missing token are rejected before the route handler runs.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        raw = request.url.path
+        path = raw.rstrip("/") or "/"     # "/" must stay as "/"
+
+        # ── Debug: show every path the middleware sees ────────────────
+        print(f"[AUTH-MW] Checking path: {request.method} {raw}  (normalized: {path})")
+
         # Always allow OPTIONS (CORS preflight)
         if request.method == "OPTIONS":
+            print(f"[AUTH-MW] -> OPTIONS preflight, passing through")
             return await call_next(request)
 
-        path = request.url.path.rstrip("/")
-        is_public = path in PUBLIC_PATHS or path.startswith("/auth/")
+        # ── Public route? Pass immediately — don't touch headers ─────
+        if _is_public(path):
+            print(f"[AUTH-MW] -> PUBLIC route, skipping JWT check")
+            request.state.user_id = None
+            request.state.token_payload = None
+            return await call_next(request)
 
+        # ── Protected route: extract & validate JWT ──────────────────
         auth_header = request.headers.get("authorization", "")
         request.state.user_id = None
         request.state.token_payload = None
@@ -48,8 +87,8 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                     request.state.user_id = user_id
                     request.state.token_payload = payload
 
-        # If a protected path has no valid user, reject early
-        if not is_public and request.state.user_id is None:
+        if request.state.user_id is None:
+            print(f"[AUTH-MW] -> PROTECTED route, NO valid token — returning 401")
             from starlette.responses import JSONResponse
             return JSONResponse(
                 status_code=401,
@@ -57,6 +96,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        print(f"[AUTH-MW] -> PROTECTED route, user_id={request.state.user_id} — OK")
         return await call_next(request)
 
     @staticmethod
