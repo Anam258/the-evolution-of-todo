@@ -1,0 +1,91 @@
+openapi: 3.0.0
+info:
+  title: Health Check API
+  version: 1.0.0
+  description: Health check endpoints for the Todo API backend
+paths:
+  /health:
+    get:
+      summary: Basic health check
+      description: Returns the basic health status of the application
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                    example: healthy
+                  service:
+                    type: string
+                    example: todo-api
+        '500':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [unhealthy]
+                    example: unhealthy
+                  error:
+                    type: string
+                    example: Database connection failed
+  /monitoring/health:
+    get:
+      summary: Detailed health check
+      description: Returns detailed health status including dependencies
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                    example: healthy
+                  service:
+                    type: string
+                    example: todo-api
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-23T10:00:00Z"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  system:
+                    type: object
+                    properties:
+                      cpu_percent:
+                        type: number
+                        example: 15.2
+                      memory_percent:
+                        type: number
+                        example: 45.6
+                  auth_config_valid:
+                    type: boolean
+                    example: true
+        '500':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [unhealthy]
+                    example: unhealthy
+                  error:
+                    type: string
+                    example: Critical service unavailable
