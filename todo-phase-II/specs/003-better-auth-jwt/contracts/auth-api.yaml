@@ -1,0 +1,487 @@
+openapi: 3.0.3
+info:
+  title: TaskPulse AI Authentication API
+  description: |
+    JWT-based authentication API for the TaskPulse AI application.
+    Provides user registration, login, and token verification endpoints.
+
+    ## Authentication Flow
+    1. User registers or logs in via `/auth/register` or `/auth/login`
+    2. Server returns JWT token in response
+    3. Client stores token in localStorage
+    4. Client includes token in `Authorization: Bearer <token>` header for protected requests
+    5. Server validates token and extracts user_id for each request
+
+    ## User Isolation
+    All protected endpoints automatically scope database queries to the authenticated user.
+    Attempting to access another user's resources returns 404 (not 403) to prevent enumeration attacks.
+  version: 1.0.0
+  contact:
+    name: TaskPulse AI
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.todoapp.com
+    description: Production server (placeholder)
+
+tags:
+  - name: Authentication
+    description: User authentication operations
+  - name: User
+    description: User profile operations
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: |
+        Creates a new user account with email and password.
+        Returns a JWT token upon successful registration.
+      tags:
+        - Authentication
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+            example:
+              email: "user@example.com"
+              password: "securePassword123"
+      responses:
+        '200':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                data:
+                  user_id: 1
+                  email: "user@example.com"
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: Bad request - user already exists or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "USER_EXISTS"
+                  message: "User with this email already exists"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '429':
+          description: Too many registration attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "RATE_LIMITED"
+                  message: "Too many registration attempts. Please try again later."
+
+  /auth/login:
+    post:
+      summary: Authenticate user
+      description: |
+        Authenticates a user with email and password.
+        Returns a JWT token upon successful authentication.
+      tags:
+        - Authentication
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginRequest'
+            example:
+              email: "user@example.com"
+              password: "securePassword123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                data:
+                  user_id: 1
+                  email: "user@example.com"
+                  token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "INVALID_CREDENTIALS"
+                  message: "Incorrect email or password"
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "RATE_LIMITED"
+                  message: "Too many login attempts. Please try again later."
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: |
+        Logs out the current user. For JWT-based auth, this is a no-op on the server;
+        the client should remove the token from storage.
+      tags:
+        - Authentication
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully logged out"
+
+  /auth/me:
+    get:
+      summary: Get current user
+      description: |
+        Returns the profile of the currently authenticated user.
+        Requires a valid JWT token in the Authorization header.
+      tags:
+        - User
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                data:
+                  user_id: 1
+                  email: "user@example.com"
+        '401':
+          description: Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_token:
+                  summary: Missing token
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Missing authentication token"
+                invalid_token:
+                  summary: Invalid token
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Invalid or expired token"
+
+  /auth/{user_id}:
+    get:
+      summary: Get user by ID
+      description: |
+        Returns a specific user's profile. Users can only access their own profile.
+        Returns 404 for other users to prevent enumeration attacks.
+      tags:
+        - User
+      operationId: getUserById
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID to retrieve
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found (or not authorized to view)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "NOT_FOUND"
+                  message: "User not found"
+
+  /auth/health:
+    get:
+      summary: Auth service health check
+      description: Returns the health status of the authentication service
+      tags:
+        - Authentication
+      operationId: authHealthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "auth"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from /auth/login or /auth/register.
+        Include in Authorization header as: Bearer <token>
+
+        Token expires after 24 hours (configurable via JWT_EXPIRATION_DELTA env var).
+
+  schemas:
+    UserRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User's password (minimum 8 characters)
+          example: "securePassword123"
+
+    UserLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          description: User's password
+          example: "securePassword123"
+
+    AuthResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          required:
+            - user_id
+            - email
+            - token
+          properties:
+            user_id:
+              type: integer
+              description: User's unique identifier
+              example: 1
+            email:
+              type: string
+              format: email
+              description: User's email address
+              example: "user@example.com"
+            token:
+              type: string
+              description: JWT access token (24-hour expiration)
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    UserProfileResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          required:
+            - user_id
+            - email
+          properties:
+            user_id:
+              type: integer
+              description: User's unique identifier
+              example: 1
+            email:
+              type: string
+              format: email
+              description: User's email address
+              example: "user@example.com"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code for programmatic handling
+              enum:
+                - UNAUTHORIZED
+                - INVALID_CREDENTIALS
+                - USER_EXISTS
+                - NOT_FOUND
+                - VALIDATION_ERROR
+                - RATE_LIMITED
+                - INTERNAL_ERROR
+              example: "UNAUTHORIZED"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Invalid or expired token"
+
+    ValidationErrorResponse:
+      type: object
+      description: FastAPI validation error response format
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: integer
+                description: Location of the error (body, path, query)
+                example: ["body", "email"]
+              msg:
+                type: string
+                description: Error message
+                example: "value is not a valid email address"
+              type:
+                type: string
+                description: Error type
+                example: "value_error.email"
+
+    JWTPayload:
+      type: object
+      description: |
+        JWT token payload structure.
+        Generated by backend on login/register, verified on each protected request.
+      required:
+        - sub
+        - user_id
+        - email
+        - iat
+        - exp
+      properties:
+        sub:
+          type: string
+          description: Subject - user_id as string (JWT standard claim)
+          example: "123"
+        user_id:
+          type: integer
+          description: User's unique identifier (integer for direct use)
+          example: 123
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        iat:
+          type: integer
+          description: Issued at timestamp (Unix epoch seconds)
+          example: 1705432800
+        exp:
+          type: integer
+          description: Expiration timestamp (Unix epoch seconds, iat + 24 hours)
+          example: 1705519200
+
+# Error code reference for client implementation
+x-error-codes:
+  UNAUTHORIZED:
+    http_status: 401
+    description: Missing, invalid, or expired authentication token
+    scenarios:
+      - Missing Authorization header
+      - Invalid JWT signature
+      - Expired token
+      - Malformed token format
+  INVALID_CREDENTIALS:
+    http_status: 401
+    description: Email or password is incorrect
+    scenarios:
+      - Wrong password
+      - Email not found (same message for security)
+  USER_EXISTS:
+    http_status: 400
+    description: User with this email already exists
+    scenarios:
+      - Registration with existing email
+  NOT_FOUND:
+    http_status: 404
+    description: Resource not found OR not owned by authenticated user
+    scenarios:
+      - User ID doesn't exist
+      - Requesting another user's profile (returns 404, not 403)
+      - Todo not found or belongs to another user
+  VALIDATION_ERROR:
+    http_status: 422
+    description: Request data validation failed
+    scenarios:
+      - Invalid email format
+      - Password too short
+      - Missing required fields
+  RATE_LIMITED:
+    http_status: 429
+    description: Too many requests
+    scenarios:
+      - Excessive login attempts
+      - Excessive registration attempts

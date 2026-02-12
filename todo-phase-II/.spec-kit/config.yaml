@@ -1,0 +1,24 @@
+project:
+  name: TaskPulse AI
+  phase: II
+  branch: 001-frontend-api-fix
+
+monorepo:
+  frontend:
+    path: frontend
+    tech: [Next.js 14, React 18, TypeScript 5.3, Tailwind CSS]
+  backend:
+    path: backend
+    tech: [FastAPI, SQLModel, Python 3.11+, python-jose, passlib]
+
+specs:
+  api:
+    - specs/001-backend-connectivity-fix
+  database:
+    - specs/001-db-schema
+  features:
+    - specs/002-multi-user-web-todo
+    - specs/003-better-auth-jwt
+  ui:
+    - specs/001-frontend-api-fix
+    - specs/004-fullstack-crud-ui

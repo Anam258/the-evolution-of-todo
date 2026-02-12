@@ -1,0 +1,3 @@
+# Phase I: No external dependencies (Python stdlib only)
+# Phase II will add: SQLAlchemy for SQLite persistence
+# Phase III will add: AI/ML libraries for intelligent features
